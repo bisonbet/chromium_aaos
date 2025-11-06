@@ -2,7 +2,7 @@ This repo has a patch to enable chromium to be ran on android automotive, along 
 # Android Setup
 ```
 cd ~/
-git clone https://github.com/zunichky/chromium_aaos.git chromium
+git clone https://github.com/bisonbet/chromium_aaos.git chromium
 cd chromium
 ```
 Follow the offical [google chromium guide](https://chromium.googlesource.com/chromium/src/+/main/docs/android_build_instructions.md)  
