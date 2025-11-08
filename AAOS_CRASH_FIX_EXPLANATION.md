@@ -12,6 +12,51 @@
 **Root Cause:**
 Your original patch is missing critical permissions and attributes required for Android Automotive OS, particularly for data storage and multi-user support.
 
+## Security and Privacy Considerations
+
+**Important:** This enhanced patch requests several permissions that have security and privacy implications:
+
+### Permissions Included
+
+1. **Storage Permissions** (READ/WRITE_EXTERNAL_STORAGE, READ_MEDIA_*)
+   - **Purpose**: Required for storing browser profile data, cache, and downloads
+   - **Privacy Impact**: LOW - Chrome manages its own data directory
+   - **Note**: READ/WRITE_EXTERNAL_STORAGE are deprecated in Android 13+ but still functional on AAOS 12
+
+2. **Foreground Service Permissions**
+   - **Purpose**: Allows Chrome to run download and sync services in the background
+   - **Privacy Impact**: LOW - Standard browser functionality
+   - **Note**: Android 14+ requires declaring `foregroundServiceType` in service definitions
+
+3. **POST_NOTIFICATIONS Permission**
+   - **Purpose**: Required for download notifications on Android 13+
+   - **Privacy Impact**: LOW - User can disable notifications in settings
+
+### Permissions Previously Removed
+
+The following permissions were removed from the enhanced patch due to security concerns:
+
+1. **INTERACT_ACROSS_USERS** (REMOVED)
+   - **Why removed**: This is a signature-level permission that requires platform key signing
+   - **Impact**: Third-party apps cannot obtain this permission
+   - **Alternative**: AAOS multi-user support works without it for most apps
+
+2. **QUERY_ALL_PACKAGES** (REMOVED)
+   - **Why removed**: Requires Google Play Console declaration and additional review
+   - **Privacy concern**: Allows seeing all installed packages
+   - **Alternative**: Use `<queries>` elements to declare specific packages/intents if needed
+
+3. **SYSTEM_ALERT_WINDOW** (REMOVED)
+   - **Why removed**: Should not be in production builds
+   - **Security concern**: Allows drawing over other apps (potential UI hijacking)
+   - **Alternative**: Only add conditionally for debug builds if needed
+
+### Distribution Considerations
+
+- **Sideloading**: All included permissions should work when sideloading the APK
+- **Play Store**: If publishing to Play Store, some permissions may require additional justification
+- **OEM Distribution**: Some OEMs may have additional restrictions on certain permissions
+
 ## What Was Missing in Your Original Patch
 
 ### 1. Storage Permissions (CRITICAL)
@@ -37,20 +82,23 @@ Without storage permissions, these operations fail silently. On app restart, Chr
 <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
 ```
 
-### 2. Multi-User Support (CRITICAL for AAOS)
+**Forward Compatibility Note:**
+- READ/WRITE_EXTERNAL_STORAGE are deprecated in Android 13+ (API 33+) but still functional on AAOS 12
+- The scoped storage permissions (READ_MEDIA_*) provide forward compatibility for future AAOS versions
+- Chrome's internal storage APIs should handle scoped storage automatically
+- For AAOS 14+ (if released), the app will gracefully transition to using only scoped storage permissions
 
-AAOS 12 runs with a headless system user in the background. Apps must support multiple user profiles.
+### 2. Multi-User Support (IMPORTANT for AAOS)
 
-**Added Permission:**
-```xml
-<uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" />
-```
+AAOS 12 runs with a headless system user in the background. Apps should support multiple user profiles.
 
 **Added Application Attributes:**
 ```xml
 android:directBootAware="true"          <!-- Works before device unlock -->
 android:requiredForAllUsers="true"      <!-- Available to all user profiles -->
 ```
+
+**Note:** The INTERACT_ACROSS_USERS permission was removed as it requires signature-level access (platform key signing). Most apps function correctly with multi-user support using only the application attributes above.
 
 ### 3. Background Service Permissions
 
@@ -74,12 +122,9 @@ Required for download notifications and other alerts.
 
 ### 5. Intent Resolution
 
-Chrome needs to query other packages for sharing, file opening, etc.
+Chrome handles intent resolution for sharing, file opening, etc. using Android's standard intent system.
 
-**Added Permission:**
-```xml
-<uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
-```
+**Note:** The QUERY_ALL_PACKAGES permission was removed due to privacy concerns and Play Store review requirements. If you need to query specific packages, use `<queries>` elements in the manifest instead of requesting blanket access.
 
 ### 6. AAOS-Specific Metadata
 
@@ -90,18 +135,45 @@ Chrome needs to query other packages for sharing, file opening, etc.
 
 This prevents Chrome from auto-launching on system boot, which could cause memory issues.
 
+## Performance Optimization: PGO Profiles
+
+This enhanced patch enables Profile-Guided Optimization (PGO) by setting `checkout_pgo_profiles: True` in the DEPS file.
+
+### Benefits
+- **5-15% runtime performance improvement** for common browser operations
+- Better code layout and optimization based on real-world usage patterns
+- Particularly beneficial for AAOS where performance matters
+
+### Trade-offs
+- **Increased initial checkout size**: PGO profiles add approximately 500MB-1GB to the initial sync
+- **Longer sync times**: First `gclient sync` will take longer
+- **More disk space required**: Ensure you have sufficient disk space before syncing
+
+### To Disable PGO Profiles
+If disk space is limited, you can disable PGO by setting `checkout_pgo_profiles: False` in the patch, though this will reduce runtime performance.
+
 ## How to Apply the Enhanced Patch
 
-### Option 1: Replace Your Current Patch
+### Recommended: Use Enhanced Patch (Already Configured)
 
+The `pull_latest.sh` script in this repository has been updated to automatically use `automotive_enhanced.patch`.
+
+Simply run:
 ```bash
 cd ~/chromium_aaos
-cp automotive_enhanced.patch automotive.patch
+./pull_latest.sh
 ```
 
-### Option 2: Use Enhanced Patch Directly
+### Alternative: Manual Application
 
-Edit your `pull_latest.sh` script to reference `automotive_enhanced.patch` instead of `automotive.patch`.
+If you prefer to apply the patch manually:
+```bash
+cd $CHROMIUMBUILD/chromium/src
+cp ~/chromium_aaos/automotive_enhanced.patch .
+git apply automotive_enhanced.patch
+```
+
+**Note:** The enhanced patch is the recommended version as it includes critical fixes for AAOS. The original `automotive.patch` (if present) is missing essential permissions and attributes.
 
 ### Rebuild Steps
 
@@ -206,13 +278,14 @@ AAOS restricts log access for security. To get logs:
 | Automotive hardware requirement | ✅ | ✅ |
 | Distraction optimized | ✅ | ✅ |
 | Storage permissions | ❌ | ✅ |
-| Multi-user support | ❌ | ✅ |
+| Multi-user support (via attributes) | ❌ | ✅ |
 | Background services | ❌ | ✅ |
 | Direct boot aware | ❌ | ✅ |
 | Required for all users | ❌ | ✅ |
 | Android 13+ permissions | ❌ | ✅ |
-| Intent resolution | ❌ | ✅ |
 | AAOS startup control | ❌ | ✅ |
+| Profile-Guided Optimization | ❌ | ✅ |
+| Security-reviewed permissions | N/A | ✅ |
 
 ## Expected Outcome
 

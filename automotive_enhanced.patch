@@ -76,15 +76,11 @@ index e0db106913282..c1ef83b3dbcfc 100644
 +    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 +    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
 +    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
-+    <!-- AAOS Multi-user permissions -->
-+    <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" />
 +    <!-- Wake lock for background sync -->
 +    <uses-permission android:name="android.permission.WAKE_LOCK" />
 +    <!-- Foreground service for downloads -->
 +    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 +    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
-+    <!-- Query packages for intent resolution -->
-+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 +
      <!-- WebView DevUI launcher icon -->
      {% if enable_webview_dev_ui %}
@@ -113,18 +109,12 @@ index e804d31ac33ce..a418a3c9cdb4a 100644
 +    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 +    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
 +    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
-+    <!-- AAOS Multi-user support -->
-+    <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" />
 +    <!-- Background services -->
 +    <uses-permission android:name="android.permission.WAKE_LOCK" />
 +    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 +    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
-+    <!-- Query packages for intent resolution -->
-+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 +    <!-- POST_NOTIFICATIONS for Android 13+ -->
 +    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-+    <!-- System alert window for debugging -->
-+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 +
      <permission android:name="{{ manifest_package }}.permission.CHILD_SERVICE"
          android:protectionLevel="signature|setup" />
