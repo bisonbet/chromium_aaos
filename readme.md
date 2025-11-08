@@ -166,6 +166,19 @@ Clone the GitHub repository containing the patch into a new folder in `$CHROMIUM
 git clone https://github.com/bisonbet/chromium_aaos.git $CHROMIUMBUILD/chromium_aaos
 ```
 
+**Important**: This repository includes two patch files:
+- `automotive.patch` - Original basic patch
+- `automotive_enhanced.patch` - **Recommended** enhanced patch with critical AAOS fixes
+
+The enhanced patch includes:
+- Storage permissions (fixes crash-after-login issue)
+- Multi-user support for AAOS
+- Direct boot awareness
+- Background service permissions
+- Profile-Guided Optimization (PGO) profiles enabled
+
+**Note on PGO Profiles**: The patches enable PGO profiles for 5-15% performance improvement. This adds ~1.2GB to initial download and ~3GB disk space. See [PGO_PROFILES_GUIDE.md](PGO_PROFILES_GUIDE.md) for details on impact and how to disable if needed.
+
 ### Move Patch Contents
 
 Move the contents of `chromium_aaos` into the `chromium` directory:
@@ -197,6 +210,12 @@ Navigate back to your base chromium folder and run the update script:
 ```bash
 cd $CHROMIUMBUILD/chromium
 ./pull_latest.sh
+```
+
+The script will automatically find and apply the enhanced patch from the chromium_aaos repository. If you need to use a different patch file, you can specify it as an argument:
+
+```bash
+./pull_latest.sh /path/to/custom.patch
 ```
 
 ### Edit build_release.sh

@@ -84,7 +84,11 @@ index e0db106913282..c1ef83b3dbcfc 100644
 +
      <!-- WebView DevUI launcher icon -->
      {% if enable_webview_dev_ui %}
-     <application android:label="WebView DevTools"
+-    <application android:label="WebView DevTools"
++    <application android:label="WebView DevTools"
++        android:directBootAware="true"
++        android:requiredForAllUsers="true"
++        android:supportsRtl="true"
 diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/AndroidManifest.xml
 index e804d31ac33ce..a418a3c9cdb4a 100644
 --- a/chrome/android/java/AndroidManifest.xml
