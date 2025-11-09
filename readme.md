@@ -27,8 +27,15 @@ You will need the Chromium Source Code, Android SDK with build-tools, and a KeyS
 ```
 $CHROMIUMBUILD
 |--chromium/
-|  |--depot_tools/ (will contain pull_latest.sh, etc.)
+|  |--depot_tools/
 |  |--src/ (Chromium source code)
+|--chromium_aaos/ (this repository with scripts and patch)
+|  |--automotive.patch
+|  |--pull_latest.sh
+|  |--build_release.sh
+|  |--Release_arm64.gn
+|  |--Release_X64.gn
+|  |--PGO_PROFILES_GUIDE.md
 |--Android/
 |  |--Sdk/
 |     |--build-tools/
@@ -160,67 +167,61 @@ keytool -genkeypair -v -keystore store.jks -alias chromium-key -keyalg RSA -keys
 
 ### Clone the Patch Repository
 
-Clone the GitHub repository containing the patch into a new folder in `$CHROMIUMBUILD`:
+Clone the GitHub repository containing the patch and build scripts into `$CHROMIUMBUILD`:
 
 ```bash
 git clone https://github.com/bisonbet/chromium_aaos.git $CHROMIUMBUILD/chromium_aaos
 ```
 
-**Important**: This repository includes two patch files:
-- `automotive.patch` - Original basic patch
-- `automotive_enhanced.patch` - **Recommended** enhanced patch with critical AAOS fixes
-
-The enhanced patch includes:
+**Important**: This repository includes the AAOS patch with critical fixes:
 - Storage permissions (fixes crash-after-login issue)
 - Multi-user support for AAOS
 - Direct boot awareness
 - Background service permissions
 - Profile-Guided Optimization (PGO) profiles enabled
 
-**Note on PGO Profiles**: The patches enable PGO profiles for 5-15% performance improvement. This adds ~1.2GB to initial download and ~3GB disk space. See [PGO_PROFILES_GUIDE.md](PGO_PROFILES_GUIDE.md) for details on impact and how to disable if needed.
-
-### Move Patch Contents
-
-Move the contents of `chromium_aaos` into the `chromium` directory:
-
-```bash
-mv $CHROMIUMBUILD/chromium_aaos/* $CHROMIUMBUILD/chromium/
-```
+**Note on PGO Profiles**: The patch enables PGO profiles for 5-15% performance improvement. This adds ~1.2GB to initial download and ~3GB disk space. See [PGO_PROFILES_GUIDE.md](PGO_PROFILES_GUIDE.md) for details on impact and how to disable if needed.
 
 ### Edit Release_arm64.gn
 
-Open the `Release_arm64.gn` file and replace the string **CHANGEME** with a unique identifier (e.g., your username, or some other string that is unique to you). This is critical for preventing issues when uploading to the Google Play Console.
+Open the `$CHROMIUMBUILD/chromium_aaos/Release_arm64.gn` file and replace the string **CHANGEME** with a unique identifier (e.g., your username, or some other string that is unique to you). This is critical for preventing issues when uploading to the Google Play Console.
 
-### Generate GN Arguments
+### Run pull_latest.sh
 
-Run the following command in Terminal. When the vi editor pops up, you can exit it immediately, as you will edit the file later:
+Navigate to the chromium directory and run the update script to fetch the latest Chromium source and apply the AAOS patch:
 
 ```bash
+cd $CHROMIUMBUILD/chromium
+$CHROMIUMBUILD/chromium_aaos/pull_latest.sh
+```
+
+The script will automatically:
+1. Update Chromium source to the latest version
+2. Find and apply the AAOS patch from `$CHROMIUMBUILD/chromium_aaos/automotive.patch`
+3. Run gclient sync and hooks
+
+If you need to use a different patch file, you can specify it as an argument:
+
+```bash
+$CHROMIUMBUILD/chromium_aaos/pull_latest.sh /path/to/custom.patch
+```
+
+### Generate GN Arguments and Configure Build
+
+Run the following command in Terminal. When the vi editor pops up, you can exit it immediately, as you will edit the file next:
+
+```bash
+cd $CHROMIUMBUILD/chromium/src
 gn args out/Release_arm64
 ```
 
 ### Edit args.gn
 
-Navigate to the newly created directory `$CHROMIUMBUILD/chromium/src/out/Release_arm64` and open the `args.gn` file with a text editor. Copy the contents of the `Release_arm64.gn` file and paste it into the `args.gn` file.
+Navigate to the newly created directory `$CHROMIUMBUILD/chromium/src/out/Release_arm64` and open the `args.gn` file with a text editor. Copy the contents of the `$CHROMIUMBUILD/chromium_aaos/Release_arm64.gn` file (with your CHANGEME edits) and paste it into the `args.gn` file.
 
-### Run pull_latest.sh
+### Configure build_release.sh (Optional)
 
-Navigate back to your base chromium folder and run the update script:
-
-```bash
-cd $CHROMIUMBUILD/chromium
-./pull_latest.sh
-```
-
-The script will automatically find and apply the enhanced patch from the chromium_aaos repository. If you need to use a different patch file, you can specify it as an argument:
-
-```bash
-./pull_latest.sh /path/to/custom.patch
-```
-
-### Edit build_release.sh
-
-Open the `build_release.sh` file and change the source directory variable to correctly point to `$CHROMIUMBUILD/chromium/src`.
+If your Chromium source is not located at the default path, open the `$CHROMIUMBUILD/chromium_aaos/build_release.sh` file and update the `DEFAULT_SRC` variable to point to your Chromium source directory, or pass the path as an argument when running the script.
 
 ## 7. Compiling Chromium
 
@@ -228,11 +229,17 @@ This is the most time-consuming step.
 
 ### Run the Build Script
 
-Ensure you are in the base chromium folder and run the build script:
+Run the build script from the chromium_aaos directory:
 
 ```bash
-cd $CHROMIUMBUILD/chromium
+cd $CHROMIUMBUILD/chromium_aaos
 ./build_release.sh
+```
+
+By default, the script uses `$CHROMIUMBUILD/chromium/src` as the source directory. If your Chromium source is in a different location, you can pass it as an argument:
+
+```bash
+./build_release.sh /path/to/chromium/src
 ```
 
 ### Enter Keystore Password
