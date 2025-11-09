@@ -10,22 +10,20 @@ PATCH_FILE=""
 if [[ -n "$1" ]]; then
     # Use provided patch file path
     PATCH_FILE="$1"
-elif [[ -n "$CHROMIUMBUILD" ]] && [[ -f "$CHROMIUMBUILD/chromium_aaos/automotive_enhanced.patch" ]]; then
+elif [[ -n "$CHROMIUMBUILD" ]] && [[ -f "$CHROMIUMBUILD/chromium_aaos/automotive.patch" ]]; then
     # Use chromium_aaos repo with enhanced patch
-    PATCH_FILE="$CHROMIUMBUILD/chromium_aaos/automotive_enhanced.patch"
-elif [[ -f "$HOME/chromium_aaos/automotive_enhanced.patch" ]]; then
+    PATCH_FILE="$CHROMIUMBUILD/chromium_aaos/automotive.patch"
+elif [[ -f "$HOME/chromium_aaos/automotive.patch" ]]; then
     # Check home directory
-    PATCH_FILE="$HOME/chromium_aaos/automotive_enhanced.patch"
+    PATCH_FILE="$HOME/chromium_aaos/automotive.patch"
 elif [[ -f "$HOME/chromium/automotive.patch" ]]; then
     # Fallback to old location (for backwards compatibility)
     PATCH_FILE="$HOME/chromium/automotive.patch"
-    echo "WARNING: Using legacy automotive.patch. Consider upgrading to automotive_enhanced.patch"
 else
     echo "ERROR: Cannot find patch file!"
     echo "Please specify patch file location as argument, or ensure it exists at:"
-    echo "  - \$CHROMIUMBUILD/chromium_aaos/automotive_enhanced.patch"
-    echo "  - ~/chromium_aaos/automotive_enhanced.patch"
-    echo "  - ~/chromium/automotive.patch (legacy)"
+    echo "  - \$CHROMIUMBUILD/chromium_aaos/automotive.patch"
+    echo "  - ~/chromium_aaos/automotive.patch"
     echo ""
     echo "Usage: $0 [path-to-patch-file]"
     exit 1
@@ -45,6 +43,10 @@ if [[ ! -d "src" ]]; then
     exit 1
 fi
 
+# Convert patch file to absolute path before changing directory
+PATCH_FILE=$(realpath "$PATCH_FILE")
+echo "Resolved patch file: $PATCH_FILE"
+
 echo "Changing to src directory..."
 cd src || { echo "Failed to cd into src directory"; exit 1; }
 
@@ -54,8 +56,16 @@ git fetch
 echo "Resetting working tree..."
 git reset --hard
 
-echo "Pulling latest changes..."
-git pull
+echo "Updating to latest main branch..."
+# First, ensure we're on the main branch
+CURRENT_BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || echo "detached")
+if [[ "$CURRENT_BRANCH" == "detached" ]]; then
+    echo "Currently in detached HEAD state. Checking out main branch..."
+    git checkout main
+fi
+
+# Now pull the latest changes
+git pull origin main
 
 echo "Running gclient sync (this may take a while)..."
 gclient sync

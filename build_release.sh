@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Default source path
-DEFAULT_SRC="/mnt/f/sources/chromium/src"
+DEFAULT_SRC="/$CHROMIUMBUILD/chromium/src"
 
 # Check if an argument is provided, otherwise use the default
 if [[ -n "$1" ]]; then
